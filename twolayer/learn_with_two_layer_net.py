@@ -1,8 +1,8 @@
-from two_layer_net import TwoLayerNet
-from mnist import load_mnist
 import numpy as np
 from matplotlib import pyplot as plt
 
+from mnist import load_mnist
+from two_layer_net import TwoLayerNet
 
 #load
 (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)
@@ -52,7 +52,6 @@ for i in range(iters_num):
 
 
 # plot the accuracy
-markers = {'train': 'o', 'test': 's'}
 x = np.arange(len(train_acc_list))
 plt.plot(x, train_acc_list, label='train acc')
 plt.plot(x, test_acc_list, label='test acc', linestyle='--')
