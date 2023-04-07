@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from mnist import load_mnist
-from two_layer import TwoLayerNet
+from two_layer_easy import TwoLayerNet
 
 # Load MNIST data
 (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)

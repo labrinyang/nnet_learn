@@ -1,4 +1,6 @@
-import sys, os
+import os
+import sys
+
 sys.path.append(os.pardir)
 from common.function import *
 from common.loss import *
