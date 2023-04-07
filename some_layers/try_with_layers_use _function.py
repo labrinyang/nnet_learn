@@ -1,5 +1,4 @@
 # It's an improvement over non-functional code, but lacks network structure visibility.
-# todo 稍后试一试class版本
 from common.layers import MulLayer, AddLayer
 
 def compute_total_price_and_gradients(prices, quantities, tax_rate):
