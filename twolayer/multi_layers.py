@@ -54,78 +54,79 @@ class MultiLayerNet:
 
         self.last_layer = SoftmaxWithLoss()
 
-        #初始化weight和bias的具体实现
-        def __init_weight(self, weight_init_std):
-            '''Initialize the weights and biases of the network. '''
-            all_size_list = [self.input_size] + self.hidden_size_list + [self.output_size]
-            for idx in range(1, len(all_size_list)):
-                scale = weight_init_std
-                if str(weight_init_std).lower() in ('relu', 'he'):
-                    scale = np.sqrt(2.0 / all_size_list[idx - 1])  # He initialization
-                elif str(weight_init_std).lower() in ('sigmoid', 'xavier'):
-                    scale = np.sqrt(1.0 / all_size_list[idx - 1])  # Xavier initialization
-                self.params['W' + str(idx)] = scale * np.random.randn(all_size_list[idx - 1], all_size_list[idx])
-                self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
+    #初始化weight和bias的具体实现
+    def __init_weight(self, weight_init_std):
+        '''Initialize the weights and biases of the network. '''
+        all_size_list = [self.input_size] + self.hidden_size_list + [self.output_size]
+        for idx in range(1, len(all_size_list)):
+            scale = weight_init_std
+            if str(weight_init_std).lower() in ('relu', 'he'):
+                scale = np.sqrt(2.0 / all_size_list[idx - 1])  # He initialization
+            elif str(weight_init_std).lower() in ('sigmoid', 'xavier'):
+                scale = np.sqrt(1.0 / all_size_list[idx - 1])  # Xavier initialization
+            self.params['W' + str(idx)] = scale * np.random.randn(all_size_list[idx - 1], all_size_list[idx])
+            self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
 
-        #预测
-        def predict(self, x, train_flg=False):
-            '''Predict the output of the network.'''
-            for key, layer in self.layers.items():
-                if "Dropout" in key or "BatchNorm" in key:
-                    x = layer.forward(x, train_flg)
-                else:
-                    x = layer.forward(x)
 
-            return x
+    #预测
+    def predict(self, x, train_flg=False):
+        '''Predict the output of the network.'''
+        for key, layer in self.layers.items():
+            if "Dropout" in key or "BatchNorm" in key:
+                x = layer.forward(x, train_flg)
+            else:
+                x = layer.forward(x)
 
-        #算loss
-        def loss(self, x, t, train_flg=False):
-            '''Calculate the loss of the network. 当然，y会用predict算出来'''
-            y = self.predict(x, train_flg)
+        return x
 
-            weight_decay = 0
-            for idx in range(1, self.hidden_layer_num + 2):
-                W = self.params['W' + str(idx)]
-                weight_decay += 0.5 * self.weight_decay_lambda * np.sum(W ** 2)
+    #算loss
+    def loss(self, x, t, train_flg=False):
+        '''Calculate the loss of the network. 当然，y会用predict算出来'''
+        y = self.predict(x, train_flg)
 
-            return self.last_layer.forward(y, t) + weight_decay
+        weight_decay = 0
+        for idx in range(1, self.hidden_layer_num + 2):
+            W = self.params['W' + str(idx)]
+            weight_decay += 0.5 * self.weight_decay_lambda * np.sum(W ** 2)
 
-        #算acc
-        def accuracy(self, x, t):
-            y = self.predict(x, train_flg=False)
-            y = np.argmax(y, axis=1)
-            if t.ndim != 1: t = np.argmax(t, axis=1)
+        return self.last_layer.forward(y, t) + weight_decay
 
-            accuracy = np.sum(y == t) / float(x.shape[0])
-            return accuracy
+    #算acc
+    def accuracy(self, x, t):
+        y = self.predict(x, train_flg=False)
+        y = np.argmax(y, axis=1)
+        if t.ndim != 1: t = np.argmax(t, axis=1)
 
-        #最后是算梯度
-        def gradient(self, x, t):
+        accuracy = np.sum(y == t) / float(x.shape[0])
+        return accuracy
 
-            # forword
-            self.loss(x, t)
+    #最后是算梯度
+    def gradient(self, x, t):
 
-            # backward
-            dout = 1
-            dout = self.last_layer.backward(dout)
+        # forword
+        self.loss(x, t)
 
-            # Loop through the layers in reverse order
-            layers = list(self.layers.values())
-            layers.reverse()
-            for layer in layers:
-                dout = layer.backward(dout)
+        # backward
+        dout = 1
+        dout = self.last_layer.backward(dout)
 
-            # Store gradients in a dictionary
-            grads = {}
-            for idx in range(1, self.hidden_layer_num + 2):
-                grads['W' + str(idx)] = self.layers['Affine' + str(idx)].dW + self.weight_decay_lambda * self.params[
-                    'W' + str(idx)]
-                grads['b' + str(idx)] = self.layers['Affine' + str(idx)].db
+        # Loop through the layers in reverse order
+        layers = list(self.layers.values())
+        layers.reverse()
+        for layer in layers:
+            dout = layer.backward(dout)
 
-                if self.use_batchnorm and idx != self.hidden_layer_num + 1:
-                    grads['gamma' + str(idx)] = self.layers['BatchNorm' + str(idx)].dgamma
-                    grads['beta' + str(idx)] = self.layers['BatchNorm' + str(idx)].dbeta
+        # Store gradients in a dictionary
+        grads = {}
+        for idx in range(1, self.hidden_layer_num + 2):
+            grads['W' + str(idx)] = self.layers['Affine' + str(idx)].dW + self.weight_decay_lambda * self.params[
+                'W' + str(idx)]
+            grads['b' + str(idx)] = self.layers['Affine' + str(idx)].db
 
-            return grads
+            if self.use_batchnorm and idx != self.hidden_layer_num + 1:
+                grads['gamma' + str(idx)] = self.layers['BatchNorm' + str(idx)].dgamma
+                grads['beta' + str(idx)] = self.layers['BatchNorm' + str(idx)].dbeta
+
+        return grads
 
 
