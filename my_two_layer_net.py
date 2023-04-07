@@ -1,4 +1,4 @@
-import numpy as np
+import cupy as cp
 from matplotlib import pyplot as plt
 
 from twolayer.mnist import load_mnist
@@ -27,7 +27,7 @@ iter_per_epoch = max(train_size / batch_size, 1)
 # Train the network
 for i in range(iters_num):
     # Get mini batch
-    batch_mask = np.random.choice(train_size,batch_size)
+    batch_mask = cp.random.choice(train_size,batch_size)
     x_batch = x_train[batch_mask]
     t_batch = t_train[batch_mask]
 
@@ -52,7 +52,7 @@ for i in range(iters_num):
 
 
 # plot the accuracy
-x = np.arange(len(train_acc_list))
+x = cp.arange(len(train_acc_list))
 plt.plot(x, train_acc_list, label='train acc')
 plt.plot(x, test_acc_list, label='test acc', linestyle='--')
 plt.xlabel("epochs")

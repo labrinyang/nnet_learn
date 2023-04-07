@@ -1,4 +1,5 @@
 # 寻找最优权重参数的优化算法：SGD、Momentum、Nesterov、AdaGrad、RMSProp、Adam
+import cupy as cp
 import numpy as np
 
 # stochastic gradient descent
@@ -26,7 +27,7 @@ class Momentum:
         if self.v is None:
             self.v = {}
             for key, val in params.items():
-                self.v[key] = np.zeros_like(val)
+                self.v[key] = cp.zeros_like(val)
 
         for key in params.keys():
             self.v[key] = self.momentum * self.v[key] - self.lr * grads[key]
@@ -46,7 +47,7 @@ class Nesterov:
         if self.v is None:
             self.v = {}
             for key, val in params.items():
-                self.v[key] = np.zeros_like(val)
+                self.v[key] = cp.zeros_like(val)
 
         for key in params.keys():
             self.v[key] *= self.momentum
@@ -67,11 +68,11 @@ class AdaGrad:
         if self.h is None:
             self.h = {}
             for key, val in params.items():
-                self.h[key] = np.zeros_like(val)
+                self.h[key] = cp.zeros_like(val)
 
         for key in params.keys():
             self.h[key] += grads[key] * grads[key]
-            params[key] -= self.lr * grads[key] / (np.sqrt(self.h[key]) + 1e-7)
+            params[key] -= self.lr * grads[key] / (cp.sqrt(self.h[key]) + 1e-7)
 
 
 # RMSprop
@@ -87,12 +88,12 @@ class RMSprop:
         if self.h is None:
             self.h = {}
             for key, val in params.items():
-                self.h[key] = np.zeros_like(val)
+                self.h[key] = cp.zeros_like(val)
 
         for key in params.keys():
             self.h[key] *= self.decay_rate
             self.h[key] += (1 - self.decay_rate) * grads[key] * grads[key]
-            params[key] -= self.lr * grads[key] / (np.sqrt(self.h[key]) + 1e-7)
+            params[key] -= self.lr * grads[key] / (cp.sqrt(self.h[key]) + 1e-7)
 
 
 # Adam
@@ -111,11 +112,11 @@ class Adam:
         if self.m is None:
             self.m, self.v = {}, {}
             for key, val in params.items():
-                self.m[key] = np.zeros_like(val)
-                self.v[key] = np.zeros_like(val)
+                self.m[key] = cp.zeros_like(val)
+                self.v[key] = cp.zeros_like(val)
 
         self.iter += 1
-        lr_t = self.lr * np.sqrt(1.0 - self.beta2 ** self.iter) / (1.0 - self.beta1 ** self.iter)
+        lr_t = self.lr * cp.sqrt(1.0 - self.beta2 ** self.iter) / (1.0 - self.beta1 ** self.iter)
 
         for key in params.keys():
             # self.m[key] = self.beta1*self.m[key] + (1-self.beta1)*grads[key]
@@ -123,8 +124,8 @@ class Adam:
             self.m[key] += (1 - self.beta1) * (grads[key] - self.m[key])
             self.v[key] += (1 - self.beta2) * (grads[key] ** 2 - self.v[key])
 
-            params[key] -= lr_t * self.m[key] / (np.sqrt(self.v[key]) + 1e-7)
+            params[key] -= lr_t * self.m[key] / (cp.sqrt(self.v[key]) + 1e-7)
 
             # unbias_m += (1 - self.beta1) * (grads[key] - self.m[key]) # correct bias
             # unbisa_b += (1 - self.beta2) * (grads[key]*grads[key] - self.v[key]) # correct bias
-            # params[key] += self.lr * unbias_m / (np.sqrt(unbisa_b) + 1e-7)
+            # params[key] += self.lr * unbias_m / (cp.sqrt(unbisa_b) + 1e-7)

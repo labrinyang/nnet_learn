@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.pardir)
 from common.function import *
 from common.loss import *
+import cupy as cp
 import numpy as np
 
 # MulLayer
@@ -71,7 +72,7 @@ class SigmoidLayer:
         self.out = None
 
     def forward(self, x):
-        out = 1/(1+np.exp(-x))
+        out = 1/(1+cp.exp(-x))
         self.out = out
 
         return out
@@ -101,14 +102,14 @@ class AffineLayer:
         x = x.reshape(x.shape[0], -1)
         self.x = x
 
-        out = np.dot(self.x, self.W) + self.b
+        out = cp.dot(self.x, self.W) + self.b
 
         return out
 
     def backward(self, dout):
-        dx = np.dot(dout, self.W.T)
-        self.dW = np.dot(self.x.T, dout)
-        self.db = np.sum(dout, axis=0)
+        dx = cp.dot(dout, self.W.T)
+        self.dW = cp.dot(self.x.T, dout)
+        self.db = cp.sum(dout, axis=0)
 
         dx = dx.reshape(*self.original_x_shape)  # 还原输入数据的形状（对应张量）
         return dx
@@ -134,7 +135,7 @@ class SoftmaxWithLoss:
             dx = (self.y - self.t) / batch_size
         else:
             dx = self.y.copy()
-            dx[np.arange(batch_size), self.t] -= 1
+            dx[cp.arange(batch_size), self.t] -= 1
             dx = dx / batch_size
 
         return dx
@@ -150,7 +151,7 @@ class Dropout:
 
     def forward(self, x, train_flg=True):
         if train_flg:
-            self.mask = np.random.rand(*x.shape) > self.dropout_ratio
+            self.mask = cp.random.rand(*x.shape) > self.dropout_ratio
             return x * self.mask
         else:
             return x * (1.0 - self.dropout_ratio)
@@ -168,13 +169,13 @@ class BatchNormalization:
         self.gamma = gamma
         self.beta = beta
         self.momentum = momentum
-        self.input_shape = None  # Conv层的情况下为4维，全连接层的情况下为2维
+        self.input_shape = None  # Conv layer's shape is 4D, Fully Connected layer's shape is 2D
 
-        # 测试时使用的平均值和方差
+        # Mean and variance used for testing
         self.running_mean = running_mean
         self.running_var = running_var
 
-        # backward时使用的中间数据
+        # Intermediate data used during backward pass
         self.batch_size = None
         self.xc = None
         self.std = None
@@ -194,23 +195,23 @@ class BatchNormalization:
     def __forward(self, x, train_flg):
         if self.running_mean is None:
             N, D = x.shape
-            self.running_mean = np.zeros(D)
-            self.running_var = np.zeros(D)
+            self.running_mean = cp.zeros(D)
+            self.running_var = cp.zeros(D)
 
         self.batch_size = x.shape[0]
 
         if train_flg:
             mu = x.mean(axis=0)
             self.xc = x - mu
-            var = np.mean(self.xc ** 2, axis=0)
-            self.std = np.sqrt(var + 10e-7)
+            var = cp.mean(self.xc ** 2, axis=0)
+            self.std = cp.sqrt(var + 10e-7)
             self.xn = self.xc / self.std
 
             self.running_mean = self.momentum * self.running_mean + (1 - self.momentum) * mu
             self.running_var = self.momentum * self.running_var + (1 - self.momentum) * var
         else:
             self.xc = x - self.running_mean
-            self.std = np.sqrt(self.running_var + 1e-7)
+            self.std = cp.sqrt(self.running_var + 1e-7)
             self.xn = self.xc / self.std
 
         out = self.gamma * self.xn + self.beta
@@ -228,16 +229,17 @@ class BatchNormalization:
 
     def __backward(self, dout):
         dbeta = dout.sum(axis=0)
-        dgamma = np.sum(self.xn * dout, axis=0)
+        dgamma = cp.sum(self.xn * dout, axis=0)
         dxn = self.gamma * dout
         dxc = dxn / self.std
-        dstd = -np.sum((dxn * self.xc) / (self.std * self.std), axis=0)
+        dstd = -cp.sum((dxn * self.xc) / (self.std * self.std), axis=0)
         dvar = 0.5 * dstd / self.std
         dxc += (2.0 / self.batch_size) * self.xc * dvar
-        dmu = np.sum(dxc, axis=0)
+        dmu = cp.sum(dxc, axis=0)
         dx = dxc - dmu / self.batch_size
 
         self.dgamma = dgamma
         self.dbeta = dbeta
 
         return dx
+

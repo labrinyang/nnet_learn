@@ -1,12 +1,11 @@
-import numpy as np
-
+import cupy as cp
 #ReLU function
 def ReLU(x):
-    return  np.maximum(0,x)
+    return  cp.maximum(0,x)
 
 #sigmoid function
 def sigmoid(x):
-    y = 1/(1+np.exp(-x))
+    y = 1/(1+cp.exp(-x))
     return y
 
 #sigmoid_grad function
@@ -21,9 +20,9 @@ def identity_function(x):
 def softmax(x):
     if x.ndim == 2:
         x = x.T
-        x = x - np.max(x, axis=0)
-        y = np.exp(x) / np.sum(np.exp(x), axis=0)
+        x = x - cp.max(x, axis=0)
+        y = cp.exp(x) / cp.sum(cp.exp(x), axis=0)
         return y.T
 
-    x = x - np.max(x) # 溢出对策
-    return np.exp(x) / np.sum(np.exp(x))
+    x = x - cp.max(x) # 溢出对策
+    return cp.exp(x) / cp.sum(cp.exp(x))

@@ -1,5 +1,6 @@
 import sys, os
 sys.path.append(os.pardir)
+import cupy as cp
 import numpy as np
 from collections import OrderedDict
 from common.layers import *
@@ -39,8 +40,8 @@ class MultiLayerNet:
             self.layers['Affine' + str(idx)] = AffineLayer(self.params['W' + str(idx)],
                                                       self.params['b' + str(idx)])
             if self.use_batchnorm:
-                self.params['gamma' + str(idx)] = np.ones(hidden_size_list[idx - 1])# 因为gamma和beta的维度和上一层的输出维度一致
-                self.params['beta' + str(idx)] = np.zeros(hidden_size_list[idx - 1])
+                self.params['gamma' + str(idx)] = cp.ones(hidden_size_list[idx - 1])# 因为gamma和beta的维度和上一层的输出维度一致
+                self.params['beta' + str(idx)] = cp.zeros(hidden_size_list[idx - 1])
                 self.layers['BatchNorm' + str(idx)] = BatchNormalization(self.params['gamma' + str(idx)],
                                                                          self.params['beta' + str(idx)])
 
@@ -61,11 +62,11 @@ class MultiLayerNet:
         for idx in range(1, len(all_size_list)):
             scale = weight_init_std
             if str(weight_init_std).lower() in ('relu', 'he'):
-                scale = np.sqrt(2.0 / all_size_list[idx - 1])  # He initialization
+                scale = cp.sqrt(2.0 / all_size_list[idx - 1])  # He initialization
             elif str(weight_init_std).lower() in ('sigmoid', 'xavier'):
-                scale = np.sqrt(1.0 / all_size_list[idx - 1])  # Xavier initialization
-            self.params['W' + str(idx)] = scale * np.random.randn(all_size_list[idx - 1], all_size_list[idx])
-            self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
+                scale = cp.sqrt(1.0 / all_size_list[idx - 1])  # Xavier initialization
+            self.params['W' + str(idx)] = scale * cp.random.randn(all_size_list[idx - 1], all_size_list[idx])
+            self.params['b' + str(idx)] = cp.zeros(all_size_list[idx])
 
 
     #预测
@@ -87,17 +88,17 @@ class MultiLayerNet:
         weight_decay = 0
         for idx in range(1, self.hidden_layer_num + 2):
             W = self.params['W' + str(idx)]
-            weight_decay += 0.5 * self.weight_decay_lambda * np.sum(W ** 2)
+            weight_decay += 0.5 * self.weight_decay_lambda * cp.sum(W ** 2)
 
         return self.last_layer.forward(y, t) + weight_decay
 
     #算acc
     def accuracy(self, x, t):
         y = self.predict(x, train_flg=False)
-        y = np.argmax(y, axis=1)
-        if t.ndim != 1: t = np.argmax(t, axis=1)
+        y = cp.argmax(y, axis=1)
+        if t.ndim != 1: t = cp.argmax(t, axis=1)
 
-        accuracy = np.sum(y == t) / float(x.shape[0])
+        accuracy = cp.sum(y == t) / float(x.shape[0])
         return accuracy
 
     #最后是算梯度
