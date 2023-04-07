@@ -4,7 +4,7 @@ Welcome to my Neural Network repository! This repo serves as a learning record o
 
 ## Description :page_facing_up:
 
-In this repository, you'll find implementations of neural networks using basic Python packages such as **NumPy**. The implementations are based on the book *Deep Learning from Scratch*.
+In this repository, you'll find implementations of neural networks using basic Python packages such as **NumPy&CuPY**. The implementations are based on the book *Deep Learning from Scratch*.
 
 ## Table of Contents :bookmark_tabs:
 
@@ -23,7 +23,7 @@ Deep Learning is a fascinating and rapidly-evolving field. This repository will 
 To run the code in this repository, you'll need the following dependencies:
 
 - Python 3.x
-- NumPy
+- NumPy&CuPY
 
 ## Usage :computer:
 
