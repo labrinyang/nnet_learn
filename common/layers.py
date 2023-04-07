@@ -97,6 +97,7 @@ class AffineLayer:
         self.db = None
 
     def forward(self, x):
+
     # 对应张量
         self.original_x_shape = x.shape
         x = x.reshape(x.shape[0], -1)
@@ -147,7 +148,7 @@ class Dropout:
 
     def __init__(self, dropout_ratio=0.5):
         self.dropout_ratio = dropout_ratio
-        self.mask = None
+        self.mask = cp.ones(1)  # 初始化为1的数组，避免乘法时的None!!!!!!!!!
 
     def forward(self, x, train_flg=True):
         if train_flg:
@@ -178,6 +179,7 @@ class BatchNormalization:
         # Intermediate data used during backward pass
         self.batch_size = None
         self.xc = None
+        self.xn = None
         self.std = None
         self.dgamma = None
         self.dbeta = None
@@ -228,8 +230,8 @@ class BatchNormalization:
         return dx
 
     def __backward(self, dout):
-        dbeta = dout.sum(axis=0)
-        dgamma = cp.sum(self.xn * dout, axis=0)
+        dgamma = cp.sum(self.xn * dout, axis=0).reshape(1, -1)
+        dbeta = cp.sum(dout, axis=0).reshape(1, -1)
         dxn = self.gamma * dout
         dxc = dxn / self.std
         dstd = -cp.sum((dxn * self.xc) / (self.std * self.std), axis=0)

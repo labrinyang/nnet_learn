@@ -16,10 +16,10 @@ x_test = cp.array(x_test)
 t_test = cp.array(t_test)
 
 # Create the network
-network = MultiLayerNet(input_size=784, hidden_size_list=[100, 50], output_size=10, use_dropout=False, use_batchnorm=False)
+network = MultiLayerNet(input_size=784, hidden_size_list=[100, 50], output_size=10, use_dropout=True, use_batchnorm=False)
 
 # Hyperparameters
-iters_num = 10000
+iters_num = 20000
 train_size = x_train.shape[0]
 batch_size = 100
 learning_rate = 0.1

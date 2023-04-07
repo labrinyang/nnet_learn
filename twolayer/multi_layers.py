@@ -40,7 +40,7 @@ class MultiLayerNet:
             self.layers['Affine' + str(idx)] = AffineLayer(self.params['W' + str(idx)],
                                                       self.params['b' + str(idx)])
             if self.use_batchnorm:
-                self.params['gamma' + str(idx)] = cp.ones(hidden_size_list[idx - 1])# 因为gamma和beta的维度和上一层的输出维度一致
+                self.params['gamma' + str(idx)] = cp.ones(hidden_size_list[idx - 1])  # 因为gamma和beta的维度和上一层的输出维度一致
                 self.params['beta' + str(idx)] = cp.zeros(hidden_size_list[idx - 1])
                 self.layers['BatchNorm' + str(idx)] = BatchNormalization(self.params['gamma' + str(idx)],
                                                                          self.params['beta' + str(idx)])
@@ -72,12 +72,15 @@ class MultiLayerNet:
     #预测
     def predict(self, x, train_flg=False):
         '''Predict the output of the network.'''
+        idx = 1
         for key, layer in self.layers.items():
             if "Dropout" in key or "BatchNorm" in key:
                 x = layer.forward(x, train_flg)
             else:
                 x = layer.forward(x)
-
+                if "Affine" in key and self.use_batchnorm and idx < self.hidden_layer_num:
+                    x = self.layers['BatchNorm' + str(idx)].forward(x, train_flg)
+                    idx += 1
         return x
 
     #算loss
@@ -103,19 +106,22 @@ class MultiLayerNet:
 
     #最后是算梯度
     def gradient(self, x, t):
-
         # forword
-        self.loss(x, t)
+        self.loss(x, t, train_flg=True)
 
         # backward
         dout = 1
         dout = self.last_layer.backward(dout)
 
-        # Loop through the layers in reverse order
         layers = list(self.layers.values())
         layers.reverse()
+
+        idx = self.hidden_layer_num
         for layer in layers:
             dout = layer.backward(dout)
+            if isinstance(layer, AffineLayer) and self.use_batchnorm and idx > 1:
+                dout = self.layers['BatchNorm' + str(idx - 1)].backward(dout)
+                idx -= 1
 
         # Store gradients in a dictionary
         grads = {}
@@ -129,5 +135,3 @@ class MultiLayerNet:
                 grads['beta' + str(idx)] = self.layers['BatchNorm' + str(idx)].dbeta
 
         return grads
-
-
